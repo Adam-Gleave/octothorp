@@ -24,7 +24,7 @@ impl<T> Octree<T> {
     pub fn new(dimension: u32) -> Option<Octree<T>> {
         let max_depth = (dimension as f64).sqrt();
         let remainder = max_depth.fract();
-        println!("{0}", remainder);
+        //TODO: Geometric sequence for verifying dimensions
 
         if remainder == 0.0 && ((max_depth as u8) < core::u8::MAX) {
             Some(
@@ -41,6 +41,7 @@ impl<T> Octree<T> {
 
     pub fn insert(&mut self, loc: NodeLoc, data: T) -> Result<(), String> {
         if self.contains_loc(loc) {
+            //TODO: insertion algorithm
             return Ok(());
         }
         Err("Error inserting node: location not bounded by octree!".to_string())
