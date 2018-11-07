@@ -3,11 +3,24 @@ extern crate core;
 use self::core::u8;
 use types::NodeLoc;
 
+/// Enumeration representing child location in `OctreeNode<T>::children` field
+#[repr(u8)]
+enum ChildLoc {
+    BaseRearLeft = 0,
+    BaseRearRight,
+    BaseFrontRight,
+    BaseFrontLeft,
+    TopRearLeft,
+    TopRearRight,
+    TopFrontRight,
+    TopFrontLeft,
+}
+
 /// Octree structure
 pub struct Octree<T> {
     dimension: u32,
     max_depth: u8,
-    children: Vec<Option<OctreeNode<T>>>,
+    root: Box<OctreeNode<T>>,
 }
 
 impl<T> Octree<T> {
@@ -16,8 +29,6 @@ impl<T> Octree<T> {
     /// # Examples
     ///
     /// ```
-    /// use octree::Octree;
-    ///
     /// let octree = Octree::<u8>::new(16);
     /// ```
     ///
@@ -30,8 +41,8 @@ impl<T> Octree<T> {
             Some(
                 Octree {
                     dimension,
-                    children: no_children(),
-                    max_depth: max_depth as u8
+                    max_depth: max_depth as u8,
+                    root: Box::new(OctreeNode::construct_root()),
                 }
             )
         } else {
@@ -39,39 +50,77 @@ impl<T> Octree<T> {
         }
     }
 
-    pub fn insert(&mut self, loc: NodeLoc, data: T) -> Result<(), String> {
-        if self.contains_loc(loc) {
-            //TODO: insertion algorithm
-            return Ok(());
+    /// Constructs a new `Octree<T>`, setting data of `self.root` node
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let octree = Octree::<u8>::new_with_data(16, 256);
+    /// ```
+    ///
+    pub fn new_with_data(dimension: u32, data: T) -> Option<Octree<T>> {
+        if let Some(mut octree) = Octree::<T>::new(dimension) {
+            octree.set_root_data(data);
+            Some(octree)
+        } else {
+            None
         }
-        Err("Error inserting node: location not bounded by octree!".to_string())
     }
 
-    fn contains_loc(&self, loc: NodeLoc) -> bool {
-        loc.x() < self.dimension && loc.y() < self.dimension && loc.z() < self.dimension
-    }
-}
-
-/// OctreeNode structure
-pub struct OctreeNode<T> {
-    depth: u8,
-    leaf: bool,
-    children: Vec<Option<OctreeNode<T>>>,
-    data: T,
-}
-
-impl<T> OctreeNode<T> {
-    /// Constructs a new `OctreeNode<T>`.
+    /// Set the `data` field of a root node, provided it is the only leaf
     ///
     /// # Examples
     ///
     /// ```
-    /// use octree::OctreeNode;
-    ///
-    /// let node = OctreeNode::<u8>::new(0, 255);
+    /// if let Some(mut octree) = Octree::<u8>::new(16) {
+    ///     octree.set_root_data(256).unwrap();
+    /// }
     /// ```
     ///
-    fn new(depth: u8, data: T) -> Option<OctreeNode<T>> {
+    pub fn set_root_data(&mut self, data: T) -> Result<(), String> {
+        if self.root.leaf {
+            self.root.set(data);
+            Ok(())
+        } else {
+            Err("Error setting root data: root node is not a leaf".to_string())
+        }
+    }
+
+    /// Insert a new `OctreeNode<T>` into the octree
+    /// If this is called on a location where a node already exists, just set the `data` field
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// if let Some(mut octree) = Octree::<String>::new(16) {
+    ///     octree.insert((0, 0, 0,), "New node created!".to_string())?;
+    /// }
+    /// ```
+    ///
+    pub fn insert(&mut self, loc: NodeLoc, data: T) -> Result<(), String> {
+        if self.contains_loc(&loc) {
+            (*self.root).insert(loc, data)
+        } else {
+            Err("Error inserting node: location not bounded by octree".to_string())
+        }
+    }
+
+    fn contains_loc(&self, loc: &NodeLoc) -> bool {
+        loc.x() < self.dimension && loc.y() < self.dimension && loc.z() < self.dimension
+    }
+}
+
+/// OctreeNode structure (inaccessible outside module)
+struct OctreeNode<T> {
+    depth: u8,
+    leaf: bool,
+    children: Vec<Option<OctreeNode<T>>>,
+    data: Option<T>,
+}
+
+impl<T> OctreeNode<T> {
+    /// Constructs a new `OctreeNode<T>`.
+    pub fn new(depth: u8, data: T) -> Option<OctreeNode<T>> {
         match depth {
             core::u8::MAX => None,
             _ => Some (
@@ -79,10 +128,36 @@ impl<T> OctreeNode<T> {
                     depth: depth + 1,
                     leaf: true,
                     children: no_children::<T>(),
-                    data,
+                    data: Some(data),
                 }
             ),
         }
+    }
+
+    /// Constructs a root `OctreeNode<T>` to be used in an `Octree<T>` structure
+    pub fn construct_root() -> OctreeNode<T> {
+        OctreeNode {
+            depth: 0,
+            leaf: true,
+            children: no_children::<T>(),
+            data: None,
+        }
+    }
+
+    /// Sets node `data` field
+    pub fn set(&mut self, data: T) -> Result<(), String> {
+        if self.leaf {
+            self.data = Some(data);
+            Ok(())
+        } else {
+            Err("Could not set octree node data: node is not a leaf".to_string())
+        }
+    }
+
+    /// Algorithm to insert a new `OctreeNode<T>` into the tree
+    pub fn insert(&mut self, loc: NodeLoc, data: T) -> Result<(), String> {
+        //TODO
+        Ok(())
     }
 }
 
@@ -119,5 +194,29 @@ mod tests {
             OctreeNode::<u8>::new(u8::max_value(), 0).is_none(),
             "Octree node with above max depth returned Some()"
         )
+    }
+
+    #[test]
+    fn test_construct_root() {
+        let root_node = OctreeNode::<u8>::construct_root();
+        assert!(
+            (root_node.depth == 0),
+            "Root octree node has a depth greater than 0"
+        );
+        assert!(
+            root_node.data.is_none(),
+            "Root octree none contains Some(data), should contain None"
+        );
+        assert!(
+            root_node.leaf,
+            "Root octree node not constructed as a leaf"
+        );
+
+        for root_children in root_node.children.iter() {
+            assert!(
+                root_children.is_none(),
+                "Rooy octree node constructed with Some(child), should be all None"
+            );
+        }
     }
 }
