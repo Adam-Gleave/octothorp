@@ -16,9 +16,16 @@ enum ChildLoc {
     TopFrontLeft,
 }
 
+impl ChildLoc {
+    /// Create a default child location value (0: BaseFrontRight)
+    fn default() -> ChildLoc {
+        ChildLoc::BaseFrontRight
+    }
+}
+
 /// Octree structure
 pub struct Octree<T> {
-    dimension: u32,
+    dimension: u16,
     max_depth: u8,
     root: Box<OctreeNode<T>>,
 }
@@ -29,20 +36,22 @@ impl<T> Octree<T> {
     /// # Examples
     ///
     /// ```
+    /// use octo::octree::Octree;
+    ///
     /// let octree = Octree::<u8>::new(16);
     /// ```
     ///
-    pub fn new(dimension: u32) -> Option<Octree<T>> {
-        let max_depth = (dimension as f64).sqrt();
-        let remainder = max_depth.fract();
+    pub fn new(dimension: u16) -> Option<Octree<T>> {
+        let depth = (dimension as f64).sqrt();
+        let remainder = depth.fract();
         //TODO: Geometric sequence for verifying dimensions
 
-        if remainder == 0.0 && ((max_depth as u8) < core::u8::MAX) {
+        if remainder == 0.0 && ((depth as u8) < core::u8::MAX) {
             Some(
                 Octree {
                     dimension,
-                    max_depth: max_depth as u8,
-                    root: Box::new(OctreeNode::construct_root()),
+                    max_depth: depth as u8,
+                    root: Box::new(OctreeNode::construct_root(dimension)),
                 }
             )
         } else {
@@ -55,10 +64,12 @@ impl<T> Octree<T> {
     /// # Example
     ///
     /// ```
-    /// let octree = Octree::<u8>::new_with_data(16, 256);
+    /// use octo::octree::Octree;
+    ///
+    /// let octree = Octree::<u8>::new_with_data(16, 255);
     /// ```
     ///
-    pub fn new_with_data(dimension: u32, data: T) -> Option<Octree<T>> {
+    pub fn new_with_data(dimension: u16, data: T) -> Option<Octree<T>> {
         if let Some(mut octree) = Octree::<T>::new(dimension) {
             octree.set_root_data(data);
             Some(octree)
@@ -72,8 +83,10 @@ impl<T> Octree<T> {
     /// # Examples
     ///
     /// ```
+    /// use octo::octree::Octree;
+    ///
     /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     octree.set_root_data(256).unwrap();
+    ///     octree.set_root_data(255).unwrap();
     /// }
     /// ```
     ///
@@ -92,14 +105,19 @@ impl<T> Octree<T> {
     /// # Examples
     ///
     /// ```
+    /// use octo::octree::Octree;
+    /// use octo::types::NodeLoc;
+    ///
     /// if let Some(mut octree) = Octree::<String>::new(16) {
-    ///     octree.insert((0, 0, 0,), "New node created!".to_string())?;
+    ///     octree.insert((NodeLoc::new((0, 0, 0,))),
+    ///         "New node created!".to_string())
+    ///         .unwrap();
     /// }
     /// ```
     ///
     pub fn insert(&mut self, loc: NodeLoc, data: T) -> Result<(), String> {
         if self.contains_loc(&loc) {
-            (*self.root).insert(loc, data)
+            (*self.root).insert(&loc, data)
         } else {
             Err("Error inserting node: location not bounded by octree".to_string())
         }
@@ -112,7 +130,7 @@ impl<T> Octree<T> {
 
 /// OctreeNode structure (inaccessible outside module)
 struct OctreeNode<T> {
-    depth: u8,
+    dimension: u16,
     leaf: bool,
     children: Vec<Option<OctreeNode<T>>>,
     data: Option<T>,
@@ -120,24 +138,25 @@ struct OctreeNode<T> {
 
 impl<T> OctreeNode<T> {
     /// Constructs a new `OctreeNode<T>`.
-    pub fn new(depth: u8, data: T) -> Option<OctreeNode<T>> {
-        match depth {
-            core::u8::MAX => None,
-            _ => Some (
+    pub fn new(curr_dimension: u16, data: T) -> Option<OctreeNode<T>> {
+        if curr_dimension < 2 {
+            None
+        } else {
+            Some (
                 OctreeNode::<T> {
-                    depth: depth + 1,
+                    dimension: curr_dimension / 2,
                     leaf: true,
                     children: no_children::<T>(),
                     data: Some(data),
                 }
-            ),
+            )
         }
     }
 
     /// Constructs a root `OctreeNode<T>` to be used in an `Octree<T>` structure
-    pub fn construct_root() -> OctreeNode<T> {
+    pub fn construct_root(dimension: u16) -> OctreeNode<T> {
         OctreeNode {
-            depth: 0,
+            dimension,
             leaf: true,
             children: no_children::<T>(),
             data: None,
@@ -155,9 +174,45 @@ impl<T> OctreeNode<T> {
     }
 
     /// Algorithm to insert a new `OctreeNode<T>` into the tree
-    pub fn insert(&mut self, loc: NodeLoc, data: T) -> Result<(), String> {
+    pub fn insert(&mut self, loc: &NodeLoc, data: T) -> Result<(), String> {
+        let child_loc = self.get_child_loc(&loc);
         //TODO
         Ok(())
+    }
+
+    /// Get correct insertion location of child node on insertion
+    fn get_child_loc(&self, loc: &NodeLoc) -> ChildLoc {
+        let comparator = self.dimension / 2;
+
+        if loc.z() < comparator {
+            if loc.y() < comparator {
+                if loc.x() < comparator {
+                    ChildLoc::BaseRearLeft
+                } else {
+                    ChildLoc::BaseRearRight
+                }
+            } else {
+                if loc.x() < comparator {
+                    ChildLoc::BaseFrontLeft
+                } else {
+                    ChildLoc::BaseFrontRight
+                }
+            }
+        } else {
+            if loc.y() < comparator {
+                if loc.x() < comparator {
+                    ChildLoc::TopRearLeft
+                } else {
+                    ChildLoc::TopRearRight
+                }
+            } else {
+                if loc.x() < comparator {
+                    ChildLoc::TopFrontLeft
+                } else {
+                    ChildLoc::TopFrontRight
+                }
+            }
+        }
     }
 }
 
@@ -185,23 +240,11 @@ mod tests {
     }
 
     #[test]
-    fn test_max_depth() {
-        assert!(
-            OctreeNode::<u8>::new(u8::max_value() - 1, 0).is_some(),
-            "Octree node with valid depth returned None"
-        );
-        assert!(
-            OctreeNode::<u8>::new(u8::max_value(), 0).is_none(),
-            "Octree node with above max depth returned Some()"
-        )
-    }
-
-    #[test]
     fn test_construct_root() {
-        let root_node = OctreeNode::<u8>::construct_root();
+        let root_node = OctreeNode::<u8>::construct_root(16);
         assert!(
-            (root_node.depth == 0),
-            "Root octree node has a depth greater than 0"
+            (root_node.dimension == 16),
+            "Root octree node dimension does not match tree dimension"
         );
         assert!(
             root_node.data.is_none(),
