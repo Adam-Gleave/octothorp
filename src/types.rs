@@ -24,18 +24,33 @@ impl NodeLoc {
         }
     }
 
-    /// Returns the x value of the NodeLoc
+    /// Returns the x value of the `NodeLoc`
     pub fn x(&self) -> u16 {
         self.location[0]
     }
 
-    /// Returns the y value of the NodeLoc
+    /// Returns the y value of the `NodeLoc`
     pub fn y(&self) -> u16 {
         self.location[1]
     }
 
-    /// Returns the z value of the NodeLoc
+    /// Returns the z value of the `NodeLoc`
     pub fn z(&self) -> u16 {
         self.location[2]
+    }
+
+    /// Set the `NodeLoc` x value
+    pub fn sub_x(&mut self, delta: u16) {
+        self.location[0 as usize] = self.location[0 as usize] - delta;
+    }
+
+    /// Set the `NodeLoc` y value
+    pub fn sub_y(&mut self, delta: u16) {
+        self.location[1 as usize] = self.location[1 as usize] - delta;
+    }
+
+    /// Set the `NodeLoc` z value
+    pub fn sub_z(&mut self, delta: u16) {
+        self.location[2 as usize] = self.location[2 as usize] - delta;
     }
 }

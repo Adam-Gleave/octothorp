@@ -30,7 +30,9 @@ pub struct Octree<T> {
     root: Box<OctreeNode<T>>,
 }
 
-impl<T> Octree<T> {
+impl<T> Octree<T>
+    where T: Copy
+{
     /// Constructs a new `Octree<T>`.
     ///
     /// # Examples
@@ -108,21 +110,22 @@ impl<T> Octree<T> {
     /// use octo::octree::Octree;
     /// use octo::types::NodeLoc;
     ///
-    /// if let Some(mut octree) = Octree::<String>::new(16) {
-    ///     octree.insert((NodeLoc::new((0, 0, 0,))),
-    ///         "New node created!".to_string())
-    ///         .unwrap();
+    /// if let Some(mut octree) = Octree::<u8>::new(16) {
+    ///     let mut loc = NodeLoc::new((0, 0, 0,));
+    ///     octree.insert(&mut loc, 255).unwrap();
     /// }
     /// ```
     ///
-    pub fn insert(&mut self, loc: NodeLoc, data: T) -> Result<(), String> {
-        if self.contains_loc(&loc) {
-            (*self.root).insert(&loc, data)
+    pub fn insert(&mut self, loc: &mut NodeLoc, data: T) -> Result<(), String> {
+        if self.contains_loc(loc) {
+            (*self.root).insert(loc, data);
+            Ok(())
         } else {
             Err("Error inserting node: location not bounded by octree".to_string())
         }
     }
 
+    /// Test whether the `Octree<T>` contains a given `NodeLoc`
     fn contains_loc(&self, loc: &NodeLoc) -> bool {
         loc.x() < self.dimension && loc.y() < self.dimension && loc.z() < self.dimension
     }
@@ -136,20 +139,16 @@ struct OctreeNode<T> {
     data: Option<T>,
 }
 
-impl<T> OctreeNode<T> {
+impl<T> OctreeNode<T>
+    where T: Copy
+{
     /// Constructs a new `OctreeNode<T>`.
-    pub fn new(curr_dimension: u16, data: T) -> Option<OctreeNode<T>> {
-        if curr_dimension < 2 {
-            None
-        } else {
-            Some (
-                OctreeNode::<T> {
-                    dimension: curr_dimension / 2,
-                    leaf: true,
-                    children: no_children::<T>(),
-                    data: Some(data),
-                }
-            )
+    pub fn new(curr_dimension: u16, data: T) -> OctreeNode<T> {
+        OctreeNode::<T> {
+            dimension: curr_dimension / 2,
+            leaf: true,
+            children: no_children::<T>(),
+            data: Some(data),
         }
     }
 
@@ -174,14 +173,21 @@ impl<T> OctreeNode<T> {
     }
 
     /// Algorithm to insert a new `OctreeNode<T>` into the tree
-    pub fn insert(&mut self, loc: &NodeLoc, data: T) -> Result<(), String> {
-        let child_loc = self.get_child_loc(&loc);
-        //TODO
-        Ok(())
+    pub fn insert(&mut self, loc: &mut NodeLoc, data: T) {
+        let child_loc = self.get_child_loc(loc);
+        let mut node = OctreeNode::<T>::new(self.dimension, data);
+
+        if self.dimension == 2 {
+            node.make_leaf();
+        } else {
+            node.insert(loc, data);
+        }
+
+        self.children[child_loc as usize] = Some(node);
     }
 
     /// Get correct insertion location of child node on insertion
-    fn get_child_loc(&self, loc: &NodeLoc) -> ChildLoc {
+    fn get_child_loc(&self, loc: &mut NodeLoc) -> ChildLoc {
         let comparator = self.dimension / 2;
 
         if loc.z() < comparator {
@@ -189,33 +195,47 @@ impl<T> OctreeNode<T> {
                 if loc.x() < comparator {
                     ChildLoc::BaseRearLeft
                 } else {
+                    loc.sub_x(comparator);
                     ChildLoc::BaseRearRight
                 }
             } else {
+                loc.sub_y(comparator);
                 if loc.x() < comparator {
                     ChildLoc::BaseFrontLeft
                 } else {
+                    loc.sub_x(comparator);
                     ChildLoc::BaseFrontRight
                 }
             }
         } else {
+            loc.sub_z(comparator);
             if loc.y() < comparator {
                 if loc.x() < comparator {
                     ChildLoc::TopRearLeft
                 } else {
+                    loc.sub_x(comparator);
                     ChildLoc::TopRearRight
                 }
             } else {
+                loc.sub_y(comparator);
                 if loc.x() < comparator {
                     ChildLoc::TopFrontLeft
                 } else {
+                    loc.sub_x(comparator);
                     ChildLoc::TopFrontRight
                 }
             }
         }
     }
+
+    /// Set `OctreeNode<T>` as a leaf node
+    fn make_leaf(&mut self) {
+        self.leaf = true;
+        self.children = no_children();
+    }
 }
 
+/// Helper function that returns an empty `OctreeNode<T>` child vector
 fn no_children<T>() -> Vec<Option<OctreeNode<T>>> {
     vec![None, None, None, None, None, None, None, None,]
 }
