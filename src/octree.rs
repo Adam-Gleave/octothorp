@@ -2,26 +2,7 @@ extern crate core;
 
 use self::core::u8;
 use types::NodeLoc;
-
-/// Enumeration representing child location in `OctreeNode<T>::children` field
-#[repr(u8)]
-enum ChildLoc {
-    BaseRearLeft = 0,
-    BaseRearRight,
-    BaseFrontRight,
-    BaseFrontLeft,
-    TopRearLeft,
-    TopRearRight,
-    TopFrontRight,
-    TopFrontLeft,
-}
-
-impl ChildLoc {
-    /// Create a default child location value (0: BaseFrontRight)
-    fn default() -> ChildLoc {
-        ChildLoc::BaseFrontRight
-    }
-}
+use node::OctreeNode;
 
 /// Octree structure
 pub struct Octree<T> {
@@ -93,7 +74,7 @@ impl<T> Octree<T>
     /// ```
     ///
     pub fn set_root_data(&mut self, data: T) -> Result<(), String> {
-        if self.root.leaf {
+        if self.root.leaf() {
             self.root.set(data);
             Ok(())
         } else {
@@ -131,121 +112,12 @@ impl<T> Octree<T>
     }
 }
 
-/// OctreeNode structure (inaccessible outside module)
-struct OctreeNode<T> {
-    dimension: u16,
-    leaf: bool,
-    children: Vec<Option<OctreeNode<T>>>,
-    data: Option<T>,
-}
-
-impl<T> OctreeNode<T>
-    where T: Copy
-{
-    /// Constructs a new `OctreeNode<T>`.
-    pub fn new(curr_dimension: u16, data: T) -> OctreeNode<T> {
-        OctreeNode::<T> {
-            dimension: curr_dimension / 2,
-            leaf: true,
-            children: no_children::<T>(),
-            data: Some(data),
-        }
-    }
-
-    /// Constructs a root `OctreeNode<T>` to be used in an `Octree<T>` structure
-    pub fn construct_root(dimension: u16) -> OctreeNode<T> {
-        OctreeNode {
-            dimension,
-            leaf: true,
-            children: no_children::<T>(),
-            data: None,
-        }
-    }
-
-    /// Sets node `data` field
-    pub fn set(&mut self, data: T) -> Result<(), String> {
-        if self.leaf {
-            self.data = Some(data);
-            Ok(())
-        } else {
-            Err("Could not set octree node data: node is not a leaf".to_string())
-        }
-    }
-
-    /// Algorithm to insert a new `OctreeNode<T>` into the tree
-    pub fn insert(&mut self, loc: &mut NodeLoc, data: T) {
-        let child_loc = self.get_child_loc(loc);
-        let mut node = OctreeNode::<T>::new(self.dimension, data);
-
-        if self.dimension == 2 {
-            node.make_leaf();
-        } else {
-            node.insert(loc, data);
-        }
-
-        self.children[child_loc as usize] = Some(node);
-    }
-
-    /// Get correct insertion location of child node on insertion
-    fn get_child_loc(&self, loc: &mut NodeLoc) -> ChildLoc {
-        let comparator = self.dimension / 2;
-
-        if loc.z() < comparator {
-            if loc.y() < comparator {
-                if loc.x() < comparator {
-                    ChildLoc::BaseRearLeft
-                } else {
-                    loc.sub_x(comparator);
-                    ChildLoc::BaseRearRight
-                }
-            } else {
-                loc.sub_y(comparator);
-                if loc.x() < comparator {
-                    ChildLoc::BaseFrontLeft
-                } else {
-                    loc.sub_x(comparator);
-                    ChildLoc::BaseFrontRight
-                }
-            }
-        } else {
-            loc.sub_z(comparator);
-            if loc.y() < comparator {
-                if loc.x() < comparator {
-                    ChildLoc::TopRearLeft
-                } else {
-                    loc.sub_x(comparator);
-                    ChildLoc::TopRearRight
-                }
-            } else {
-                loc.sub_y(comparator);
-                if loc.x() < comparator {
-                    ChildLoc::TopFrontLeft
-                } else {
-                    loc.sub_x(comparator);
-                    ChildLoc::TopFrontRight
-                }
-            }
-        }
-    }
-
-    /// Set `OctreeNode<T>` as a leaf node
-    fn make_leaf(&mut self) {
-        self.leaf = true;
-        self.children = no_children();
-    }
-}
-
-/// Helper function that returns an empty `OctreeNode<T>` child vector
-fn no_children<T>() -> Vec<Option<OctreeNode<T>>> {
-    vec![None, None, None, None, None, None, None, None,]
-}
-
 #[cfg(test)]
 mod tests {
     extern crate core;
 
     use self::core::u8;
-    use octree::{Octree, OctreeNode};
+    use octree::Octree;
 
     #[test]
     fn test_dimension() {
@@ -257,29 +129,5 @@ mod tests {
             Octree::<u8>::new(3).is_none(),
             "Octree with non-square number dimension returned Some()"
         );
-    }
-
-    #[test]
-    fn test_construct_root() {
-        let root_node = OctreeNode::<u8>::construct_root(16);
-        assert!(
-            (root_node.dimension == 16),
-            "Root octree node dimension does not match tree dimension"
-        );
-        assert!(
-            root_node.data.is_none(),
-            "Root octree none contains Some(data), should contain None"
-        );
-        assert!(
-            root_node.leaf,
-            "Root octree node not constructed as a leaf"
-        );
-
-        for root_children in root_node.children.iter() {
-            assert!(
-                root_children.is_none(),
-                "Rooy octree node constructed with Some(child), should be all None"
-            );
-        }
     }
 }
