@@ -54,8 +54,10 @@ impl<T> Octree<T>
     ///
     pub fn new_with_data(dimension: u16, data: T) -> Option<Octree<T>> {
         if let Some(mut octree) = Octree::<T>::new(dimension) {
-            octree.set_root_data(data);
-            Some(octree)
+            match octree.set_root_data(data) {
+                Err(_) => None,
+                _ => Some(octree)
+            }
         } else {
             None
         }
@@ -75,7 +77,7 @@ impl<T> Octree<T>
     ///
     pub fn set_root_data(&mut self, data: T) -> Result<(), String> {
         if self.root.leaf() {
-            self.root.set(data);
+            self.root.set(data)?;
             Ok(())
         } else {
             Err("Error setting root data: root node is not a leaf".to_string())
