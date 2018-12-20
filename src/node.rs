@@ -21,6 +21,7 @@ impl ChildLoc {
 }
 
 /// OctreeNode structure (inaccessible outside module)
+#[derive(Debug)]
 pub struct OctreeNode<T> {
     dimension: u16,
     leaf: bool,
@@ -66,13 +67,32 @@ impl<T> OctreeNode<T>
         let child_loc = self.get_child_loc(loc);
         let mut node = OctreeNode::<T>::new(self.dimension, data);
 
+        if self.leaf {
+            self.make_leaf(false);
+            self.data = None;
+        }
+
         if self.dimension == 2 {
-            node.make_leaf();
+            node.make_leaf(true);
         } else {
             node.insert(loc, data);
         }
 
         self.children[child_loc as usize] = Some(node);
+    }
+
+    /// Get data of an `OctreeNode<T>` at a given `NodeLoc`
+    pub fn at(&self, loc: &mut NodeLoc) -> Option<T> {
+        let child_loc = self.get_child_loc(loc);
+        let child = &self.children[child_loc as usize];
+
+        if child.is_none() {
+            None
+        } else if child.as_ref().unwrap().leaf {
+            child.as_ref().unwrap().data.clone()
+        } else {
+            self.at(loc)
+        }
     }
 
     pub fn leaf(&self) -> bool {
@@ -122,9 +142,12 @@ impl<T> OctreeNode<T>
     }
 
     /// Set `OctreeNode<T>` as a leaf node
-    fn make_leaf(&mut self) {
-        self.leaf = true;
-        self.children = no_children();
+    fn make_leaf(&mut self, state: bool) {
+        self.leaf = state;
+
+        if self.leaf {
+            self.children = no_children();
+        }
     }
 }
 

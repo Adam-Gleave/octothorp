@@ -5,6 +5,7 @@ use types::NodeLoc;
 use node::OctreeNode;
 
 /// Octree structure
+#[derive(Debug)]
 pub struct Octree<T> {
     dimension: u16,
     max_depth: u8,
@@ -120,6 +121,7 @@ mod tests {
 
     use self::core::u8;
     use octree::Octree;
+    use types::NodeLoc;
 
     #[test]
     fn test_dimension() {
@@ -131,5 +133,16 @@ mod tests {
             Octree::<u8>::new(3).is_none(),
             "Octree with non-square number dimension returned Some()"
         );
+    }
+
+    // Debugging purposes, not a real test yet!
+    #[test]
+    fn test_insert() {
+        if let Some(mut octree) = Octree::<u8>::new(16) {
+            let mut loc = NodeLoc::new((0, 0, 0, ));
+            octree.insert(&mut loc, 255).unwrap();
+
+            println!("{:?}", octree)
+        };
     }
 }
