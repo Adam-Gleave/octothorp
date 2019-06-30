@@ -1,5 +1,6 @@
 extern crate core;
 
+use std::fmt;
 use self::core::u8;
 use types::NodeLoc;
 use node::OctreeNode;
@@ -115,6 +116,27 @@ impl<T> Octree<T>
     }
 }
 
+/// Pretty printing
+/// This is currently wildly unoptimised!
+impl<T> fmt::Display for Octree<T>
+    where T: Copy + fmt::Debug
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Octree nodes:")?;
+        for x in 0..self.dimension {
+            for y in 0..self.dimension {
+                for z in 0..self.dimension {
+                    let mut loc = NodeLoc::new((x, y, z));
+                    if let Some(val) = self.root.at(&mut loc) {
+                        writeln!(f, "({}, {}, {}): {:?}", x, y, z, val)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     extern crate core;
@@ -135,14 +157,17 @@ mod tests {
         );
     }
 
-    // Debugging purposes, not a real test yet!
     #[test]
     fn test_insert() {
         if let Some(mut octree) = Octree::<u8>::new(16) {
-            let mut loc = NodeLoc::new((0, 0, 0, ));
-            octree.insert(&mut loc, 255).unwrap();
-
-            println!("{:?}", octree)
+            let mut loc1 = NodeLoc::new((0, 0, 0, ));
+            octree.insert(&mut loc1, 255).unwrap();
+            let mut loc2 = NodeLoc::new((12, 10, 6, ));
+            octree.insert(&mut loc2, 128).unwrap();
+            assert!(
+                octree.root.at(&mut loc1).is_some();
+                octree.root.at(&mut loc2).is_some();
+            );
         };
     }
 }

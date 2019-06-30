@@ -91,7 +91,7 @@ impl<T> OctreeNode<T>
         } else if child.as_ref().unwrap().leaf {
             child.as_ref().unwrap().data.clone()
         } else {
-            self.at(loc)
+            child.as_ref().unwrap().at(loc)
         }
     }
 
