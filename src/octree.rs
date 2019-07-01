@@ -165,8 +165,17 @@ mod tests {
             let mut loc2 = NodeLoc::new((12, 10, 6, ));
             octree.insert(&mut loc2, 128).unwrap();
             assert!(
-                octree.root.at(&mut loc1).is_some();
-                octree.root.at(&mut loc2).is_some();
+                octree.root.at(&mut loc1).is_some(),
+                "Point not found in Octree after inserting"
+            );
+            assert!(
+                octree.root.at(&mut loc2).is_some(),
+                "Point not found in Octree after inserting"
+            );
+        } else {
+            assert!(
+                false,
+                "Error initialising Octree"
             );
         };
     }
