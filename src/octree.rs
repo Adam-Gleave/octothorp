@@ -86,7 +86,7 @@ impl<T> Octree<T>
         }
     }
 
-    /// Insert a new `OctreeNode<T>` into the octree
+    /// Insert a new `OctreeNode<T>` into the `Octree<T>`
     /// If this is called on a location where a node already exists, just set the `data` field
     ///
     /// # Examples
@@ -108,6 +108,36 @@ impl<T> Octree<T>
         } else {
             Err("Error inserting node: location not bounded by octree".to_string())
         }
+    }
+
+    /// Get the value stored by the `Octree<T>` at a given node
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use octo::octree::Octree;
+    /// use octo::types::NodeLoc;
+    ///
+    /// if let Some(mut octree) = Octree::<u8>::new(16) {
+    ///     let mut lov = NodeLoc::new((0, 0, 0,));
+    ///     octree.insert(&mut loc, 255).unwrap();
+    ///
+    ///     assert_eq!(octree.at(&mut loc), 255);
+    /// }
+    /// ```
+    ///
+    pub fn at(&self, loc: &mut NodeLoc) -> Option<T> {
+        self.root.at(loc)
+    }
+
+    /// Returns the x/y/z dimension of an `Octree<T>`
+    pub fn dimension(&self) -> u16 {
+        self.dimension
+    }
+
+    /// Returns the maximum depth of an `Octree<T>`
+    pub fn max_depth(&self) -> u8 {
+        self.max_depth
     }
 
     /// Test whether the `Octree<T>` contains a given `NodeLoc`
