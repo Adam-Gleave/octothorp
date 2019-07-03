@@ -54,7 +54,7 @@ impl<T> Octree<T>
     /// let octree = Octree::<u8>::new_with_data(16, 255);
     /// ```
     ///
-    pub fn new_with_data(dimension: u16, data: T) -> Option<Octree<T>> {
+    pub fn new_with_data(dimension: u16, data: T) -> Option<Octree< T>> {
         if let Some(mut octree) = Octree::<T>::new(dimension) {
             match octree.set_root_data(data) {
                 Err(_) => None,
@@ -119,10 +119,10 @@ impl<T> Octree<T>
     /// use octo::types::NodeLoc;
     ///
     /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     let mut lov = NodeLoc::new((0, 0, 0,));
+    ///     let mut loc = NodeLoc::new((0, 0, 0,));
     ///     octree.insert(&mut loc, 255).unwrap();
     ///
-    ///     assert_eq!(octree.at(&mut loc), 255);
+    ///     assert_eq!(octree.at(&mut loc), Some(255));
     /// }
     /// ```
     ///
@@ -146,9 +146,85 @@ impl<T> Octree<T>
     }
 }
 
+/// Struct providing iterator functionality for `Octree<T>`
+pub struct OctreeIterator<T> {
+    node_stack: Vec<Box<OctreeNode<T>>>,
+    value_stack: Vec<T>,
+}
+
+impl<T> IntoIterator for Octree<T>
+    where T: Copy
+{
+    type Item = T;
+    type IntoIter = OctreeIterator<T>;
+
+    /// Transform the `Octree<T>` into an iterator, consuming the `Octree<T>`
+    /// 
+    /// # Examples
+    ///
+    /// ```
+    /// use octo::octree::Octree;
+    /// use octo::types::NodeLoc;
+    ///
+    /// if let Some(mut octree) = Octree::<u8>::new(16) {
+    ///     let mut loc = NodeLoc::new((0, 0, 0,));
+    ///     octree.insert(&mut loc, 255).unwrap();
+    ///
+    ///     let mut iter = octree.into_iter();
+    ///     assert_eq!(iter.nth(0), Some(255));
+    /// }
+    /// ```
+    /// 
+    fn into_iter(self) -> OctreeIterator<T> {
+        OctreeIterator::new(self)
+    }
+}
+
+impl<T> OctreeIterator<T> 
+    where T: Copy
+{
+    /// Create a new `OctreeIterator<T>` from an `Octree<T>`, consuming it in the process
+    fn new(octree: Octree<T>) -> OctreeIterator<T> {
+        let mut iter = OctreeIterator {
+            node_stack: vec![],
+            value_stack: vec![],
+        };
+        iter.node_stack.push(octree.root.clone());
+        iter.dfs();
+        iter
+    }
+
+    /// Iterator implementation using depth-first search
+    fn dfs(&mut self) {
+        while !self.node_stack.is_empty() {
+            if let Some(curr_node) = self.node_stack.pop() {
+                if let Some(data) = curr_node.get() {
+                    self.value_stack.push(data);
+                };
+                for child in curr_node.children() {
+                    if let Some(child_node) = child {
+                        self.node_stack.push(Box::new(child_node));
+                    };
+                }
+            };
+        }
+    }
+}
+
+impl<T> Iterator for OctreeIterator<T> 
+    where T: Copy
+{
+    type Item = T;
+
+    /// Essential `Iterator` implementation
+    fn next(&mut self) -> Option<T> {
+        self.value_stack.pop()
+    }
+}
+
 /// Pretty printing
 /// This is currently wildly unoptimised!
-impl<T> fmt::Display for Octree<T>
+impl< T> fmt::Display for Octree< T>
     where T: Copy + fmt::Debug
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -201,6 +277,33 @@ mod tests {
             assert!(
                 octree.root.at(&mut loc2).is_some(),
                 "Point not found in Octree after inserting"
+            );
+        } else {
+            assert!(
+                false,
+                "Error initialising Octree"
+            );
+        };
+    }
+
+    #[test]
+    fn test_iter() {
+        if let Some(mut octree) = Octree::<u8>::new(16) {
+            let mut loc1 = NodeLoc::new((0, 0, 0, ));
+            octree.insert(&mut loc1, 255).unwrap();
+            let mut loc2 = NodeLoc::new((12, 10, 6, ));
+            octree.insert(&mut loc2, 128).unwrap();
+            
+            let mut iter = octree.into_iter();
+            assert_eq!(
+                iter.nth(0), 
+                Some(255),
+                "Value not found in iterator"    
+            );
+            assert_eq!(
+                iter.nth(0), 
+                Some(128),
+                "Value not found in iterator"
             );
         } else {
             assert!(

@@ -21,7 +21,7 @@ impl ChildLoc {
 }
 
 /// OctreeNode structure (inaccessible outside module)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OctreeNode<T> {
     dimension: u16,
     leaf: bool,
@@ -60,6 +60,16 @@ impl<T> OctreeNode<T>
         } else {
             Err("Could not set octree node data: node is not a leaf".to_string())
         }
+    }
+
+    /// Get node `data` field
+    pub fn get(&self) -> Option<T> {
+        self.data
+    }
+
+    /// Get node children
+    pub fn children(&self) -> Vec<Option<OctreeNode<T>>> {
+        self.children.clone()
     }
 
     /// Algorithm to insert a new `OctreeNode<T>` into the tree
