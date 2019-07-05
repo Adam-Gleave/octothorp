@@ -1,6 +1,6 @@
 # Octothorp
 
-Octothorp is a sparse octree library for rust. It can be used to manage any data, provided it is `Copy` (this limitation may be removed in the future).
+Octothorp is a **__work in progress__** sparse octree library for rust. It can be used to manage any data, provided it is `Copy` (this limitation may be removed in the future).
 
 ## Example:
 ```rust
