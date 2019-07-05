@@ -92,17 +92,16 @@ impl<T> Octree<T>
     ///
     /// ```
     /// use octo::octree::Octree;
-    /// use octo::types::NodeLoc;
     ///
     /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     let mut loc = NodeLoc::new((0, 0, 0,));
-    ///     octree.insert(&mut loc, 255).unwrap();
+    ///     octree.insert([0, 0, 0], 255).unwrap();
     /// }
     /// ```
     ///
-    pub fn insert(&mut self, loc: &mut NodeLoc, data: T) -> Result<(), String> {
-        if self.contains_loc(loc) {
-            (*self.root).insert(loc, data);
+    pub fn insert(&mut self, loc: [u16; 3], data: T) -> Result<(), String> {
+        let mut node_loc = self.loc_from_array(loc);
+        if self.contains_loc(&node_loc) {
+            (*self.root).insert(&mut node_loc, data);
             Ok(())
         } else {
             Err("Error inserting node: location not bounded by octree".to_string())
@@ -118,15 +117,14 @@ impl<T> Octree<T>
     /// use octo::types::NodeLoc;
     ///
     /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     let mut loc = NodeLoc::new((0, 0, 0,));
-    ///     octree.insert(&mut loc, 255).unwrap();
-    ///
-    ///     assert_eq!(octree.at(&mut loc), Some(255));
+    ///     octree.insert([0, 0, 0], 255).unwrap();
+    ///     assert_eq!(octree.at([0, 0, 0]), Some(255));
     /// }
     /// ```
     ///
-    pub fn at(&self, loc: &mut NodeLoc) -> Option<T> {
-        self.root.at(loc)
+    pub fn at(&self, loc: [u16; 3]) -> Option<T> {
+        let mut node_loc = self.loc_from_array(loc);
+        self.root.at(&mut node_loc)
     }
 
     /// Returns the x/y/z dimension of an `Octree<T>`
@@ -139,23 +137,18 @@ impl<T> Octree<T>
         self.max_depth
     }
 
-    /// Test whether the `Octree<T>` contains a given `NodeLoc`
-    fn contains_loc(&self, loc: &NodeLoc) -> bool {
-        loc.x() < self.dimension && loc.y() < self.dimension && loc.z() < self.dimension
-    }
-
     /// Transform the `Octree<T>` into an iterator, consuming the `Octree<T>`
     /// 
     /// # Examples
     ///
     /// ```
     /// use octo::octree::Octree;
-    /// use octo::types::NodeLoc;
     ///
     /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     let mut loc = NodeLoc::new((0, 0, 0,));
-    ///     octree.insert(&mut loc, 255).unwrap();
-    ///     octree.insert(&mut loc, 128).unwrap();
+    ///     let mut loc1 = [0, 0, 0];
+    ///     let mut loc2 = [12, 10, 6];
+    ///     octree.insert([0, 0, 0], 255).unwrap();
+    ///     octree.insert([12, 10, 6], 128).unwrap();
     /// 
     ///     // This will print "255, 128"
     ///     for val in octree.iter() {
@@ -166,6 +159,14 @@ impl<T> Octree<T>
     /// 
     pub fn iter(&mut self) -> OctreeIterator<T> {
         OctreeIterator::new_from_ref(&self)
+    }
+
+    fn loc_from_array(&self, array: [u16; 3]) -> NodeLoc {
+        NodeLoc::new((array[0], array[1], array[2]))
+    }
+
+    fn contains_loc(&self, loc: &NodeLoc) -> bool {
+        loc.x() < self.dimension && loc.y() < self.dimension && loc.z() < self.dimension
     }
 }
 
@@ -187,11 +188,9 @@ impl<T> IntoIterator for Octree<T>
     ///
     /// ```
     /// use octo::octree::Octree;
-    /// use octo::types::NodeLoc;
     ///
     /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     let mut loc = NodeLoc::new((0, 0, 0,));
-    ///     octree.insert(&mut loc, 255).unwrap();
+    ///     octree.insert([0, 0, 0], 255).unwrap();
     ///
     ///     let mut iter = octree.into_iter();
     ///     assert_eq!(iter.nth(0), Some(255));
@@ -283,7 +282,6 @@ mod tests {
 
     use self::core::u8;
     use octree::Octree;
-    use types::NodeLoc;
 
     #[test]
     fn test_dimension() {
@@ -300,16 +298,16 @@ mod tests {
     #[test]
     fn test_insert() {
         if let Some(mut octree) = Octree::<u8>::new(16) {
-            let mut loc1 = NodeLoc::new((0, 0, 0, ));
-            octree.insert(&mut loc1, 255).unwrap();
-            let mut loc2 = NodeLoc::new((12, 10, 6, ));
-            octree.insert(&mut loc2, 128).unwrap();
+            let loc1 = [0, 0, 0];
+            let loc2 = [12, 10, 6];
+            octree.insert(loc1, 255).unwrap();
+            octree.insert(loc2, 128).unwrap();
             assert!(
-                octree.root.at(&mut loc1).is_some(),
+                octree.at(loc1).is_some(),
                 "Point not found in Octree after inserting"
             );
             assert!(
-                octree.root.at(&mut loc2).is_some(),
+                octree.at(loc2).is_some(),
                 "Point not found in Octree after inserting"
             );
         } else {
@@ -323,10 +321,8 @@ mod tests {
     #[test]
     fn test_iter() {
         if let Some(mut octree) = Octree::<u8>::new(16) {
-            let mut loc1 = NodeLoc::new((0, 0, 0, ));
-            octree.insert(&mut loc1, 255).unwrap();
-            let mut loc2 = NodeLoc::new((12, 10, 6, ));
-            octree.insert(&mut loc2, 128).unwrap();
+            octree.insert([0, 0, 0], 255).unwrap();
+            octree.insert([12, 10, 6], 128).unwrap();
 
             let mut iter = octree.into_iter();
             assert_eq!(
