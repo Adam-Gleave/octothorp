@@ -299,15 +299,22 @@ mod tests {
     fn test_insert() {
         if let Some(mut octree) = Octree::<u8>::new(16) {
             let loc1 = [0, 0, 0];
-            let loc2 = [12, 10, 6];
+            let loc2 = [0, 0, 1];
+            let loc3 = [12, 10, 6];
             octree.insert(loc1, 255).unwrap();
             octree.insert(loc2, 128).unwrap();
+            octree.insert(loc3, 255).unwrap();
+            println!("{:?}", octree);
             assert!(
                 octree.at(loc1).is_some(),
                 "Point not found in Octree after inserting"
             );
             assert!(
                 octree.at(loc2).is_some(),
+                "Point not found in Octree after inserting"
+            );
+            assert!(
+                octree.at(loc3).is_some(),
                 "Point not found in Octree after inserting"
             );
         } else {

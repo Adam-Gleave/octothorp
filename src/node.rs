@@ -2,6 +2,7 @@ use types::NodeLoc;
 
 /// Enumeration representing child location in `OctreeNode<T>::children` field
 #[repr(u8)]
+#[derive(Copy, Clone)]
 enum ChildLoc {
     BaseRearLeft = 0,
     BaseRearRight,
@@ -75,7 +76,11 @@ impl<T> OctreeNode<T>
     /// Algorithm to insert a new `OctreeNode<T>` into the tree
     pub fn insert(&mut self, loc: &mut NodeLoc, data: T) {
         let child_loc = self.get_child_loc(loc);
-        let mut node = OctreeNode::<T>::new(self.dimension, data);
+        let mut node = if self.children[child_loc as usize].is_some() {
+            self.children[child_loc as usize].take().unwrap()
+        } else {
+            OctreeNode::<T>::new(self.dimension, data)
+        };
 
         if self.leaf {
             self.make_leaf(false);
