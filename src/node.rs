@@ -31,7 +31,7 @@ pub struct OctreeNode<T> {
 }
 
 impl<T> OctreeNode<T>
-    where T: Copy
+    where T: Copy + PartialEq
 {
     /// Constructs a new `OctreeNode<T>`.
     pub fn new(curr_dimension: u16, data: T) -> OctreeNode<T> {
@@ -94,6 +94,27 @@ impl<T> OctreeNode<T>
         }
 
         self.children[child_loc as usize] = Some(node);
+        self.try_simplify(data);
+    }
+
+    /// Simplify the current node if all children have the same value
+    fn try_simplify(&mut self, data: T) {
+        for child in &self.children {
+            if let Some(child_node) = child {
+                if let Some(node_data) = child_node.get() {
+                    if node_data != data {
+                        return;
+                    } 
+                } else {
+                    return;
+                }
+            } else {
+                return;   
+            };
+        }
+        self.data = Some(data);
+        self.children = no_children::<T>();
+        self.leaf = true;
     }
 
     /// Get data of an `OctreeNode<T>` at a given `NodeLoc`
@@ -110,8 +131,26 @@ impl<T> OctreeNode<T>
         }
     }
 
+    /// Get a shared reference to a given `OctreeNode<T>`
+    pub fn node_as_ref(&self, loc: &mut NodeLoc) -> Option<&OctreeNode<T>> {
+        let child_loc = self.get_child_loc(loc);
+        let child = &self.children[child_loc as usize];
+
+        if child.is_none() {
+            None
+        } else if child.as_ref().unwrap().leaf {
+            child.as_ref()
+        } else {
+            child.as_ref().unwrap().node_as_ref(loc)
+        }
+    }
+
     pub fn leaf(&self) -> bool {
         self.leaf
+    }
+
+    pub fn dimension(&self) -> u16 {
+        self.dimension
     }
 
     /// Get correct insertion location of child node on insertion

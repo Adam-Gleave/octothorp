@@ -13,7 +13,7 @@ pub struct Octree<T> {
 }
 
 impl<T> Octree<T>
-    where T: Copy
+    where T: Copy + PartialEq
 {
     /// Constructs a new `Octree<T>`.
     ///
@@ -137,6 +137,12 @@ impl<T> Octree<T>
         self.max_depth
     }
 
+    /// Get a shared reference to a given `OctreeNode<T>`
+    pub fn node_as_ref(&self, loc: [u16; 3]) -> Option<&OctreeNode<T>> {
+        let mut node_loc = self.loc_from_array(loc);
+        self.root.node_as_ref(&mut node_loc)
+    }
+
     /// Transform the `Octree<T>` into an iterator, consuming the `Octree<T>`
     /// 
     /// # Examples
@@ -161,12 +167,16 @@ impl<T> Octree<T>
         OctreeIterator::new_from_ref(&self)
     }
 
+    /// Create a NodeLoc from a 3-index co-ordinate array
     fn loc_from_array(&self, array: [u16; 3]) -> NodeLoc {
         NodeLoc::new((array[0], array[1], array[2]))
     }
 
+    /// Test if the `Octree<T>` bounds the given `NodeLoc`
     fn contains_loc(&self, loc: &NodeLoc) -> bool {
-        loc.x() < self.dimension && loc.y() < self.dimension && loc.z() < self.dimension
+        loc.x() < self.dimension && 
+        loc.y() < self.dimension && 
+        loc.z() < self.dimension
     }
 }
 
@@ -177,7 +187,7 @@ pub struct OctreeIterator<T> {
 }
 
 impl<T> IntoIterator for Octree<T>
-    where T: Copy
+    where T: Copy + PartialEq
 {
     type Item = T;
     type IntoIter = OctreeIterator<T>;
@@ -203,7 +213,7 @@ impl<T> IntoIterator for Octree<T>
 }
 
 impl<T> OctreeIterator<T> 
-    where T: Copy
+    where T: Copy + PartialEq
 {
     /// Create a new `OctreeIterator<T>` from an `Octree<T>`, consuming it in the process
     fn new(octree: Octree<T>) -> OctreeIterator<T> {
@@ -258,7 +268,7 @@ impl<T> Iterator for OctreeIterator<T>
 /// Debug printing, including node locations
 /// This is currently wildly unoptimised!
 impl<T> fmt::Debug for Octree<T>
-    where T: Copy + fmt::Debug
+    where T: Copy + PartialEq + fmt::Debug
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Octree nodes:")?;
@@ -302,9 +312,8 @@ mod tests {
             let loc2 = [0, 0, 1];
             let loc3 = [12, 10, 6];
             octree.insert(loc1, 255).unwrap();
-            octree.insert(loc2, 128).unwrap();
-            octree.insert(loc3, 255).unwrap();
-            println!("{:?}", octree);
+            octree.insert(loc2, 255).unwrap();
+            octree.insert(loc3, 128).unwrap();
             assert!(
                 octree.at(loc1).is_some(),
                 "Point not found in Octree after inserting"
@@ -323,6 +332,35 @@ mod tests {
                 "Error initialising Octree"
             );
         };
+    }
+
+    #[test]
+    fn test_simplify() {
+        if let Some(mut octree) = Octree::<u8>::new(16) {
+            octree.insert([0, 0, 0], 255).unwrap();
+            octree.insert([0, 0, 1], 255).unwrap();
+            octree.insert([0, 1, 0], 255).unwrap();
+            octree.insert([0, 1, 1], 255).unwrap();
+            octree.insert([1, 0, 0], 255).unwrap();
+            octree.insert([1, 0, 1], 255).unwrap();
+            octree.insert([1, 1, 0], 255).unwrap();
+
+            if let Some(node) = octree.node_as_ref([0, 0, 0]) {
+                assert_eq!(node.dimension(), 1, "Node erroneously simplified");
+            } else {
+                assert!(false, "Point not found in Octree after inserting");                
+            }
+
+            octree.insert([1, 1, 1], 255).unwrap();
+
+            if let Some(node) = octree.node_as_ref([0, 0, 0]) {
+                assert_eq!(node.dimension(), 2, "Node not simplified");
+            } else {
+                assert!(false, "Point not found in Octree after inserting");
+            }
+        } else {
+            assert!(false, "Error initialising Octree");
+        }
     }
 
     #[test]
