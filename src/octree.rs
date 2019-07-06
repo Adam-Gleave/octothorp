@@ -350,12 +350,17 @@ mod tests {
             }
 
             octree.insert([1, 1, 1], 255).unwrap();
+            octree.insert([0, 0, 0], 255).unwrap();
 
             if let Some(node) = octree.node_as_ref([0, 0, 0]) {
                 assert_eq!(node.dimension(), 2, "Node not simplified");
             } else {
                 assert!(false, "Point not found in Octree after inserting");
             }
+
+            octree.insert([0, 0, 0], 128).unwrap();
+            assert_eq!(octree.at([0, 0, 0]), Some(128), "Error desimplifying node");
+            assert_eq!(octree.at([0, 0, 1]), Some(255), "Error desimplifying node");
         } else {
             assert!(false, "Error initialising Octree");
         }

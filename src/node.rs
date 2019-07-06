@@ -26,6 +26,7 @@ impl ChildLoc {
 pub struct OctreeNode<T> {
     dimension: u16,
     leaf: bool,
+    simplified: bool,
     children: Vec<Option<OctreeNode<T>>>,
     data: Option<T>,
 }
@@ -39,6 +40,7 @@ where
         OctreeNode::<T> {
             dimension: curr_dimension / 2,
             leaf: true,
+            simplified: false,
             children: no_children::<T>(),
             data: Some(data),
         }
@@ -49,6 +51,7 @@ where
         OctreeNode {
             dimension,
             leaf: true,
+            simplified: false,
             children: no_children::<T>(),
             data: None,
         }
@@ -77,13 +80,13 @@ where
     /// Algorithm to insert a new `OctreeNode<T>` into the tree
     pub fn insert(&mut self, loc: &mut NodeLoc, data: T) {
         let child_loc = self.get_child_loc(loc);
-        let mut node = if self.children[child_loc as usize].is_some() {
+        let mut node = if self.children[child_loc as usize].is_some() && !self.simplified {
             self.children[child_loc as usize].take().unwrap()
         } else {
             OctreeNode::<T>::new(self.dimension, data)
         };
 
-        if self.leaf {
+        if self.leaf && !self.simplified {
             self.make_leaf(false);
             self.data = None;
         }
@@ -94,7 +97,21 @@ where
             node.insert(loc, data);
         }
 
-        self.children[child_loc as usize] = Some(node);
+        if self.simplified && self.data != Some(data) {
+            for i in 0..self.children.len() {
+                if i as usize != child_loc as usize {
+                    self.children[i as usize] =
+                        Some(OctreeNode::<T>::new(self.dimension, self.data.unwrap()));
+                }
+            }
+            self.children[child_loc as usize] = Some(node.clone());
+            self.leaf = false;
+            self.simplified = false;
+            self.data = None;
+        } else {
+            self.children[child_loc as usize] = Some(node.clone());
+        }
+
         self.try_simplify(data);
     }
 
@@ -113,9 +130,11 @@ where
                 return;
             };
         }
+
         self.data = Some(data);
         self.children = no_children::<T>();
         self.leaf = true;
+        self.simplified = true;
     }
 
     /// Get data of an `OctreeNode<T>` at a given `NodeLoc`
@@ -233,7 +252,7 @@ mod tests {
         for root_children in root_node.children.iter() {
             assert!(
                 root_children.is_none(),
-                "Rooy octree node constructed with Some(child), should be all None"
+                "Root octree node constructed with Some(child), should be all None"
             );
         }
     }
