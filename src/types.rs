@@ -41,16 +41,16 @@ impl NodeLoc {
 
     /// Set the `NodeLoc` x value
     pub fn sub_x(&mut self, delta: u16) {
-        self.location[0 as usize] = self.location[0 as usize] - delta;
+        self.location[0 as usize] -= delta;
     }
 
     /// Set the `NodeLoc` y value
     pub fn sub_y(&mut self, delta: u16) {
-        self.location[1 as usize] = self.location[1 as usize] - delta;
+        self.location[1 as usize] -= delta;
     }
 
     /// Set the `NodeLoc` z value
     pub fn sub_z(&mut self, delta: u16) {
-        self.location[2 as usize] = self.location[2 as usize] - delta;
+        self.location[2 as usize] -= delta;
     }
 }

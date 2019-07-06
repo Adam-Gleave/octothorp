@@ -126,7 +126,7 @@ where
         if child.is_none() {
             None
         } else if child.as_ref().unwrap().leaf {
-            child.as_ref().unwrap().data.clone()
+            child.as_ref().unwrap().data
         } else {
             child.as_ref().unwrap().at(loc)
         }

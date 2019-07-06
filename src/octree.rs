@@ -27,7 +27,7 @@ where
     /// ```
     ///
     pub fn new(dimension: u16) -> Option<Octree<T>> {
-        let depth = (dimension as f64).sqrt();
+        let depth = f64::from(dimension).sqrt();
         let remainder = depth.fract();
         //TODO: Geometric sequence for verifying dimensions
 
@@ -179,7 +179,7 @@ where
 
 /// Struct providing iterator functionality for `Octree<T>`
 pub struct OctreeIterator<T> {
-    node_stack: Vec<Box<OctreeNode<T>>>,
+    node_stack: Vec<OctreeNode<T>>,
     value_stack: Vec<T>,
 }
 
@@ -220,7 +220,7 @@ where
             node_stack: vec![],
             value_stack: vec![],
         };
-        iter.node_stack.push(octree.root.clone());
+        iter.node_stack.push(*(octree.root.clone()));
         iter.dfs();
         iter
     }
@@ -231,7 +231,7 @@ where
             node_stack: vec![],
             value_stack: vec![],
         };
-        iter.node_stack.push(octree.root.clone());
+        iter.node_stack.push(*(octree.root.clone()));
         iter.dfs();
         iter
     }
@@ -245,7 +245,7 @@ where
                 };
                 for child in curr_node.children() {
                     if let Some(child_node) = child {
-                        self.node_stack.push(Box::new(child_node));
+                        self.node_stack.push(child_node);
                     };
                 }
             };
