@@ -31,7 +31,8 @@ pub struct OctreeNode<T> {
 }
 
 impl<T> OctreeNode<T>
-    where T: Copy + PartialEq
+where
+    T: Copy + PartialEq,
 {
     /// Constructs a new `OctreeNode<T>`.
     pub fn new(curr_dimension: u16, data: T) -> OctreeNode<T> {
@@ -104,12 +105,12 @@ impl<T> OctreeNode<T>
                 if let Some(node_data) = child_node.get() {
                     if node_data != data {
                         return;
-                    } 
+                    }
                 } else {
                     return;
                 }
             } else {
-                return;   
+                return;
             };
         }
         self.data = Some(data);
@@ -207,7 +208,7 @@ impl<T> OctreeNode<T>
 
 /// Helper function that returns an empty `OctreeNode<T>` child vector
 fn no_children<T>() -> Vec<Option<OctreeNode<T>>> {
-    vec![None, None, None, None, None, None, None, None,]
+    vec![None, None, None, None, None, None, None, None]
 }
 
 #[cfg(test)]
@@ -227,10 +228,7 @@ mod tests {
             root_node.data.is_none(),
             "Root octree none contains Some(data), should contain None"
         );
-        assert!(
-            root_node.leaf,
-            "Root octree node not constructed as a leaf"
-        );
+        assert!(root_node.leaf, "Root octree node not constructed as a leaf");
 
         for root_children in root_node.children.iter() {
             assert!(
