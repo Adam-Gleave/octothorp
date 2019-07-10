@@ -151,7 +151,7 @@ where
         }
     }
 
-    /// Get data of an `OctreeNode<T>` at a given `NodeLoc`, and replace it with `None`.
+    /// Get data of an `OctreeNode<T>` at a given `NodeLoc`, and replace it with `None`
     pub fn take(&mut self, loc: &mut NodeLoc) -> Option<T> {
         let child_loc = self.get_child_loc(loc);
         let child = &mut self.children[child_loc as usize];

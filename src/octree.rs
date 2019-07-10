@@ -146,6 +146,25 @@ where
         self.root.take(&mut node_loc)
     }
 
+    /// Insert `None` into the `Octree<T>` at a given node
+    /// 
+    /// '# Examples
+    /// 
+    /// ```
+    /// use octo::octree::Octree;
+    /// use octo::types::NodeLoc;
+    /// 
+    /// if let Some(mut octree) = Octree::<u8>::new(16) {
+    ///     octree.insert([0, 0, 0], 255).unwrap();
+    ///     octree.insert_none([0, 0, 0]);
+    ///     let val = octree.at([0, 0, 0]);
+    ///     assert_eq!(val, None);
+    /// };
+    /// 
+    pub fn insert_none(&mut self, loc: [u16; 3]) {
+        self.take(loc);
+    }
+
     /// Returns the x/y/z dimension of an `Octree<T>`
     pub fn dimension(&self) -> u16 {
         self.dimension
@@ -407,6 +426,18 @@ mod tests {
             let val = octree.take([0, 0, 0]);
             assert_eq!(octree.at([0, 0, 0]), None);
             assert_eq!(val, Some(255));
+            let none_val = octree.take([0, 0, 0]);
+            assert_eq!(none_val, None);
+        };
+    }
+
+    #[test]
+    fn test_insert_none() {
+        if let Some(mut octree) = Octree::<u8>::new(16) {
+            octree.insert([0, 0, 0], 255).unwrap();
+            octree.insert_none([0, 0, 0]);
+            let val = octree.at([0, 0, 0]);
+            assert_eq!(val, None);
         };
     }
 }
