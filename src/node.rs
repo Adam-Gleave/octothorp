@@ -151,6 +151,20 @@ where
         }
     }
 
+    /// Get data of an `OctreeNode<T>` at a given `NodeLoc`, and replace it with `None`.
+    pub fn take(&mut self, loc: &mut NodeLoc) -> Option<T> {
+        let child_loc = self.get_child_loc(loc);
+        let child = &mut self.children[child_loc as usize];
+
+        if child.is_none() {
+            None
+        } else if child.as_ref().unwrap().leaf {
+            child.as_mut().unwrap().data.take()
+        } else {
+            child.as_mut().unwrap().take(loc)
+        }
+    }
+
     /// Get a shared reference to a given `OctreeNode<T>`
     pub fn node_as_ref(&self, loc: &mut NodeLoc) -> Option<&OctreeNode<T>> {
         let child_loc = self.get_child_loc(loc);

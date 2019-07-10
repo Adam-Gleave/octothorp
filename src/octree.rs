@@ -126,6 +126,26 @@ where
         self.root.at(&mut node_loc)
     }
 
+    /// Get the value stored by the `Octree<T>` at a given node, and replace with `None`
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use octo::octree::Octree;
+    /// use octo::types::NodeLoc;
+    /// 
+    /// if let Some(mut octree) = Octree::<u8>::new(16) {
+    ///     octree.insert([0, 0, 0], 255).unwrap();
+    ///     let val = octree.take([0, 0, 0]);
+    ///     assert_eq!(octree.at([0, 0, 0]), None);
+    ///     assert_eq!(val, Some(255));
+    /// };
+    /// 
+    pub fn take(&mut self, loc: [u16; 3]) -> Option<T> {
+        let mut node_loc = self.loc_from_array(loc);
+        self.root.take(&mut node_loc)
+    }
+
     /// Returns the x/y/z dimension of an `Octree<T>`
     pub fn dimension(&self) -> u16 {
         self.dimension
@@ -377,6 +397,16 @@ mod tests {
             assert_eq!(iter.nth(0), Some(128), "Value not found in iterator");
         } else {
             assert!(false, "Error initialising Octree");
+        };
+    }
+
+    #[test]
+    fn test_take() {
+        if let Some(mut octree) = Octree::<u8>::new(16) {
+            octree.insert([0, 0, 0], 255).unwrap();
+            let val = octree.take([0, 0, 0]);
+            assert_eq!(octree.at([0, 0, 0]), None);
+            assert_eq!(val, Some(255));
         };
     }
 }
