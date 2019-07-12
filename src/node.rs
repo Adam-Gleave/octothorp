@@ -14,13 +14,6 @@ enum ChildLoc {
     TopFrontLeft,
 }
 
-impl ChildLoc {
-    /// Create a default child location value (0: BaseFrontRight)
-    fn default() -> ChildLoc {
-        ChildLoc::BaseFrontRight
-    }
-}
-
 /// OctreeNode structure (inaccessible outside module)
 #[derive(Debug, Clone)]
 pub struct OctreeNode<T> {
@@ -132,8 +125,7 @@ where
         }
 
         self.data = Some(data);
-        self.children = no_children::<T>();
-        self.leaf = true;
+        self.make_leaf(true);
         self.simplified = true;
     }
 
@@ -163,6 +155,28 @@ where
         } else {
             child.as_mut().unwrap().take(loc)
         }
+    }
+
+    /// Insert `None` into the data field of an `OctreeNode<T>`
+    pub fn insert_none(&mut self, loc: &mut NodeLoc) {
+        self.take(loc);
+        self.try_simplify_none();
+    }
+
+    /// Remove leaf nodes from branch if all leaves contain None
+    fn try_simplify_none(&mut self) {
+        for child in &self.children {
+            if let Some(child_node) = child {
+                if let Some(_) = child_node.data {
+                    return;
+                }
+            }
+        }
+
+        self.data = None;
+        self.make_leaf(true);
+        self.simplified = true;
+        self.children = no_children();
     }
 
     /// Get a shared reference to a given `OctreeNode<T>`
@@ -242,32 +256,4 @@ where
 /// Helper function that returns an empty `OctreeNode<T>` child vector
 fn no_children<T>() -> Vec<Option<OctreeNode<T>>> {
     vec![None, None, None, None, None, None, None, None]
-}
-
-#[cfg(test)]
-mod tests {
-    extern crate core;
-
-    use node::OctreeNode;
-
-    #[test]
-    fn test_construct_root() {
-        let root_node = OctreeNode::<u8>::construct_root(16);
-        assert!(
-            (root_node.dimension == 16),
-            "Root octree node dimension does not match tree dimension"
-        );
-        assert!(
-            root_node.data.is_none(),
-            "Root octree none contains Some(data), should contain None"
-        );
-        assert!(root_node.leaf, "Root octree node not constructed as a leaf");
-
-        for root_children in root_node.children.iter() {
-            assert!(
-                root_children.is_none(),
-                "Root octree node constructed with Some(child), should be all None"
-            );
-        }
-    }
 }
