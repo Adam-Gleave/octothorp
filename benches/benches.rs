@@ -17,7 +17,7 @@ fn bench(c: &mut Criterion) {
     c.bench_function(
         "insert",
         move |b| b.iter(|| {
-            black_box(octree.insert([12, 6, 8], 255));
+            black_box(octree.insert([12, 6, 8], 255).unwrap());
         })
     );
 
@@ -26,7 +26,7 @@ fn bench(c: &mut Criterion) {
     c.bench_function(
         "at",
         move |b| b.iter(|| {
-            black_box(octree.at([12, 6, 8]));
+            black_box(octree.at([12, 6, 8]).unwrap());
         })
     );
 }
