@@ -3,4 +3,9 @@ name = "octo"
 version = "0.1.0"
 authors = ["Adam-Gleave <adamg108@hotmail.co.uk>"]
 
-[dependencies]
+[dev-dependencies]
+criterion = "0.2.11"
+
+[[bench]]
+name = "benches"
+harness = false

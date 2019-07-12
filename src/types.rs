@@ -1,14 +1,14 @@
 /// NodeLoc structure, representing location within octree
 #[derive(Debug)]
 pub struct NodeLoc {
-    location: Vec<u16>,
+    location: [u16; 3],
 }
 
 impl NodeLoc {
     /// Constructs a new `NodeLoc`.
     pub fn new(coords: (u16, u16, u16)) -> NodeLoc {
         NodeLoc {
-            location: vec![coords.0, coords.1, coords.2],
+            location: [coords.0, coords.1, coords.2],
         }
     }
 
