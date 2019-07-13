@@ -1,4 +1,47 @@
-use types::NodeLoc;
+/// NodeLoc structure, representing location within octree
+#[derive(Debug)]
+pub struct NodeLoc {
+    location: [u16; 3],
+}
+
+impl NodeLoc {
+    /// Constructs a new `NodeLoc`.
+    pub fn new(coords: (u16, u16, u16)) -> NodeLoc {
+        NodeLoc {
+            location: [coords.0, coords.1, coords.2],
+        }
+    }
+
+    /// Returns the x value of the `NodeLoc`
+    pub fn x(&self) -> u16 {
+        self.location[0]
+    }
+
+    /// Returns the y value of the `NodeLoc`
+    pub fn y(&self) -> u16 {
+        self.location[1]
+    }
+
+    /// Returns the z value of the `NodeLoc`
+    pub fn z(&self) -> u16 {
+        self.location[2]
+    }
+
+    /// Set the `NodeLoc` x value
+    pub fn sub_x(&mut self, delta: u16) {
+        self.location[0 as usize] -= delta;
+    }
+
+    /// Set the `NodeLoc` y value
+    pub fn sub_y(&mut self, delta: u16) {
+        self.location[1 as usize] -= delta;
+    }
+
+    /// Set the `NodeLoc` z value
+    pub fn sub_z(&mut self, delta: u16) {
+        self.location[2 as usize] -= delta;
+    }
+}
 
 /// Enumeration representing child location in `OctreeNode<T>::children` field
 #[repr(u8)]
@@ -167,7 +210,7 @@ where
     fn try_simplify_none(&mut self) {
         for child in &self.children {
             if let Some(child_node) = child {
-                if let Some(_) = child_node.data {
+                if child_node.data.is_some() {
                     return;
                 }
             }

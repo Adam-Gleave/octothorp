@@ -1,7 +1,8 @@
-pub mod octree;
+mod error;
 mod node;
-mod types;
+pub mod octree;
 
+pub use error::OctreeError;
 pub use octree::Octree;
 
 #[cfg(test)]
@@ -9,125 +10,116 @@ mod tests {
     extern crate core;
 
     use self::core::u8;
+    use error::OctreeError;
     use octree::Octree;
 
     #[test]
     fn test_dimension() {
         assert!(
-            Octree::<u8>::new(16).is_some(),
+            Octree::<u8>::new(16).is_ok(),
             "Octree with square number dimension returned None"
         );
         assert!(
-            Octree::<u8>::new(3).is_none(),
+            Octree::<u8>::new(3).is_err(),
             "Octree with non-square number dimension returned Some()"
         );
     }
 
     #[test]
     fn test_insert() {
-        if let Some(mut octree) = Octree::<u8>::new(16) {
-            let loc1 = [0, 0, 0];
-            let loc2 = [0, 0, 1];
-            let loc3 = [12, 10, 6];
-            octree.insert(loc1, 255).unwrap();
-            octree.insert(loc2, 255).unwrap();
-            octree.insert(loc3, 128).unwrap();
-            assert!(
-                octree.at(loc1).is_some(),
-                "Point not found in Octree after inserting"
-            );
-            assert!(
-                octree.at(loc2).is_some(),
-                "Point not found in Octree after inserting"
-            );
-            assert!(
-                octree.at(loc3).is_some(),
-                "Point not found in Octree after inserting"
-            );
-        } else {
-            assert!(false, "Error initialising Octree");
-        };
+        let mut octree = Octree::<u8>::new(16).unwrap();
+        let loc1 = [0, 0, 0];
+        let loc2 = [0, 0, 1];
+        let loc3 = [12, 10, 6];
+        octree.insert(loc1, 255).unwrap();
+        octree.insert(loc2, 255).unwrap();
+        octree.insert(loc3, 128).unwrap();
+        assert!(
+            octree.at(loc1).is_some(),
+            "Point not found in Octree after inserting"
+        );
+        assert!(
+            octree.at(loc2).is_some(),
+            "Point not found in Octree after inserting"
+        );
+        assert!(
+            octree.at(loc3).is_some(),
+            "Point not found in Octree after inserting"
+        );
     }
 
     #[test]
     fn test_simplify() {
-        if let Some(mut octree) = Octree::<u8>::new(16) {
-            octree.insert([0, 0, 0], 255).unwrap();
-            octree.insert([0, 0, 1], 255).unwrap();
-            octree.insert([0, 1, 0], 255).unwrap();
-            octree.insert([0, 1, 1], 255).unwrap();
-            octree.insert([1, 0, 0], 255).unwrap();
-            octree.insert([1, 0, 1], 255).unwrap();
-            octree.insert([1, 1, 0], 255).unwrap();
+        let mut octree = Octree::<u8>::new(16).unwrap();
+        octree.insert([0, 0, 0], 255).unwrap();
+        octree.insert([0, 0, 1], 255).unwrap();
+        octree.insert([0, 1, 0], 255).unwrap();
+        octree.insert([0, 1, 1], 255).unwrap();
+        octree.insert([1, 0, 0], 255).unwrap();
+        octree.insert([1, 0, 1], 255).unwrap();
+        octree.insert([1, 1, 0], 255).unwrap();
 
-            if let Some(node) = octree.node_as_ref([0, 0, 0]) {
-                assert_eq!(node.dimension(), 1, "Node erroneously simplified");
-            } else {
-                assert!(false, "Point not found in Octree after inserting");
-            }
-
-            octree.insert([1, 1, 1], 255).unwrap();
-            octree.insert([0, 0, 0], 255).unwrap();
-
-            if let Some(node) = octree.node_as_ref([0, 0, 0]) {
-                assert_eq!(node.dimension(), 2, "Node not simplified");
-            } else {
-                assert!(false, "Point not found in Octree after inserting");
-            }
-
-            octree.insert([0, 0, 0], 128).unwrap();
-            assert_eq!(octree.at([0, 0, 0]), Some(128), "Error desimplifying node");
-            assert_eq!(octree.at([0, 0, 1]), Some(255), "Error desimplifying node");
+        if let Some(node) = octree.node_as_ref([0, 0, 0]) {
+            assert_eq!(node.dimension(), 1, "Node erroneously simplified");
         } else {
-            assert!(false, "Error initialising Octree");
+            assert!(false, "Point not found in Octree after inserting");
         }
+
+        octree.insert([1, 1, 1], 255).unwrap();
+        octree.insert([0, 0, 0], 255).unwrap();
+
+        if let Some(node) = octree.node_as_ref([0, 0, 0]) {
+            assert_eq!(node.dimension(), 2, "Node not simplified");
+        } else {
+            assert!(false, "Point not found in Octree after inserting");
+        }
+
+        octree.insert([0, 0, 0], 128).unwrap();
+        assert_eq!(octree.at([0, 0, 0]), Some(128), "Error desimplifying node");
+        assert_eq!(octree.at([0, 0, 1]), Some(255), "Error desimplifying node");
     }
 
     #[test]
     fn test_iter() {
-        if let Some(mut octree) = Octree::<u8>::new(16) {
-            octree.insert([0, 0, 0], 255).unwrap();
-            octree.insert([12, 10, 6], 128).unwrap();
+        let mut octree = Octree::<u8>::new(16).unwrap();
+        octree.insert([0, 0, 0], 255).unwrap();
+        octree.insert([12, 10, 6], 128).unwrap();
 
-            let mut iter = octree.into_iter();
-            assert_eq!(iter.nth(0), Some(255), "Value not found in iterator");
-            assert_eq!(iter.nth(0), Some(128), "Value not found in iterator");
-        } else {
-            assert!(false, "Error initialising Octree");
-        };
+        let mut iter = octree.into_iter();
+        assert_eq!(iter.nth(0), Some(255), "Value not found in iterator");
+        assert_eq!(iter.nth(0), Some(128), "Value not found in iterator");
     }
 
     #[test]
     fn test_take() {
-        if let Some(mut octree) = Octree::<u8>::new(16) {
-            octree.insert([0, 0, 0], 255).unwrap();
-            let val = octree.take([0, 0, 0]);
-            assert_eq!(octree.at([0, 0, 0]), None);
-            assert_eq!(val, Some(255));
-            let none_val = octree.take([0, 0, 0]);
-            assert_eq!(none_val, None);
-        };
+        let mut octree = Octree::<u8>::new(16).unwrap();
+        octree.insert([0, 0, 0], 255).unwrap();
+        let val = octree.take([0, 0, 0]);
+        assert_eq!(octree.at([0, 0, 0]), None);
+        assert_eq!(val, Some(255));
+        let none_val = octree.take([0, 0, 0]);
+        assert_eq!(none_val, None);
     }
 
     #[test]
     fn test_insert_none() {
-        if let Some(mut octree) = Octree::<u8>::new(16) {
-            octree.insert([0, 0, 0], 255).unwrap();
-            octree.insert_none([0, 0, 0]);
-            let val = octree.at([0, 0, 0]);
-            assert_eq!(val, None);
-        };
+        let mut octree = Octree::<u8>::new(16).unwrap();
+        octree.insert([0, 0, 0], 255).unwrap();
+        octree.insert_none([0, 0, 0]);
+        let val = octree.at([0, 0, 0]);
+        assert_eq!(val, None);
     }
 
     #[test]
     fn test_simplify_none() {
-        if let Some(mut octree) = Octree::<u8>::new(16) {
-            octree.insert([0, 0, 0], 255).unwrap();
-            octree.insert_none([0, 0, 0]);
-            let val = octree.at([0, 0, 0]);
-            assert_eq!(val, None);
-            println!("{:?}", octree);
+        if let Err(OctreeError::DimensionError) = Octree::<u8>::new(3) {
+            println!("Passed!");
         };
+        //octree.insert([0, 0, 0], 255).unwrap();
+        //octree.insert_none([0, 0, 0]);
+        //let val = octree.at([0, 0, 0]);
+        //assert_eq!(val, None);
+        //println!("{:?}", octree);
     }
 
     use node::OctreeNode;
@@ -143,7 +135,10 @@ mod tests {
             root_node.get().is_none(),
             "Root octree none contains Some(data), should contain None"
         );
-        assert!(root_node.leaf(), "Root octree node not constructed as a leaf");
+        assert!(
+            root_node.leaf(),
+            "Root octree node not constructed as a leaf"
+        );
 
         for root_children in root_node.children().iter() {
             assert!(

@@ -1,4 +1,5 @@
 # Octothorp
+[![Build Status](https://travis-ci.org/Adam-Gleave/octothorp.svg?branch=master)](https://travis-ci.org/Adam-Gleave/octothorp)
 
 Octothorp is a **_work in progress_** sparse octree library for rust. It can be used to manage any data, provided it is `Copy` and `PartialEq` (these limitations may be removed in the future).
 
