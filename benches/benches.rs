@@ -5,7 +5,7 @@ extern crate octo;
 use criterion::black_box;
 use criterion::Criterion;
 
-use octo::octree::Octree;
+use octo::Octree;
 
 fn bench(c: &mut Criterion) {
     c.bench_function(
@@ -22,7 +22,7 @@ fn bench(c: &mut Criterion) {
     );
 
     let mut octree = Octree::<u8>::new(16).unwrap();
-    octree.insert([12, 6, 8], 255);
+    octree.insert([12, 6, 8], 255).unwrap();
     c.bench_function(
         "at",
         move |b| b.iter(|| {

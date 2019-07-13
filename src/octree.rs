@@ -21,15 +21,13 @@ where
     /// # Examples
     ///
     /// ```
-    /// use octo::octree::Octree;
-    ///
-    /// let octree = Octree::<u8>::new(16);
+    /// # use octo::octree::Octree;
+    /// let octree = Octree::<u8>::new(16).unwrap();
     /// ```
     ///
     pub fn new(dimension: u16) -> Option<Octree<T>> {
         let depth = f64::from(dimension).sqrt();
         let remainder = depth.fract();
-        //TODO: Geometric sequence for verifying dimensions
 
         if remainder == 0.0 && ((depth as u8) < core::u8::MAX) {
             Some(Octree {
@@ -42,59 +40,16 @@ where
         }
     }
 
-    /// Constructs a new `Octree<T>`, setting data of `self.root` node
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use octo::octree::Octree;
-    ///
-    /// let octree = Octree::<u8>::new_with_data(16, 255);
-    /// ```
-    ///
-    pub fn new_with_data(dimension: u16, data: T) -> Option<Octree<T>> {
-        if let Some(mut octree) = Octree::<T>::new(dimension) {
-            match octree.set_root_data(data) {
-                Err(_) => None,
-                _ => Some(octree),
-            }
-        } else {
-            None
-        }
-    }
-
-    /// Set the `data` field of a root node, provided it is the only leaf
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use octo::octree::Octree;
-    ///
-    /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     octree.set_root_data(255).unwrap();
-    /// }
-    /// ```
-    ///
-    pub fn set_root_data(&mut self, data: T) -> Result<(), String> {
-        if self.root.leaf() {
-            self.root.set(data)?;
-            Ok(())
-        } else {
-            Err("Error setting root data: root node is not a leaf".to_string())
-        }
-    }
-
     /// Insert a new `OctreeNode<T>` into the `Octree<T>`
     /// If this is called on a location where a node already exists, just set the `data` field
     ///
     /// # Examples
     ///
     /// ```
-    /// use octo::octree::Octree;
+    /// # use octo::octree::Octree;
     ///
-    /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     octree.insert([0, 0, 0], 255).unwrap();
-    /// }
+    /// # let mut octree = Octree::<u8>::new(16).unwrap();
+    /// octree.insert([0, 0, 0], 255).unwrap();
     /// ```
     ///
     pub fn insert(&mut self, loc: [u16; 3], data: T) -> Result<(), String> {
@@ -112,12 +67,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use octo::octree::Octree;
+    /// # use octo::octree::Octree;
     ///
-    /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     octree.insert([0, 0, 0], 255).unwrap();
-    ///     assert_eq!(octree.at([0, 0, 0]), Some(255));
-    /// }
+    /// # let mut octree = Octree::<u8>::new(16).unwrap();
+    /// octree.insert([0, 0, 0], 255).unwrap();
+    /// assert_eq!(octree.at([0, 0, 0]), Some(255));
     /// ```
     ///
     pub fn at(&self, loc: [u16; 3]) -> Option<T> {
@@ -130,15 +84,15 @@ where
     /// # Examples
     /// 
     /// ```
-    /// use octo::octree::Octree;
+    /// # use octo::octree::Octree;
     /// 
-    /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     octree.insert([0, 0, 0], 255).unwrap();
-    ///     let val = octree.take([0, 0, 0]);
-    ///     assert_eq!(octree.at([0, 0, 0]), None);
-    ///     assert_eq!(val, Some(255));
-    /// };
+    /// # let mut octree = Octree::<u8>::new(16).unwrap();
+    /// octree.insert([0, 0, 0], 255).unwrap();
+    /// let val = octree.take([0, 0, 0]);
     /// 
+    /// assert_eq!(octree.at([0, 0, 0]), None);
+    /// assert_eq!(val, Some(255));
+    /// ```
     pub fn take(&mut self, loc: [u16; 3]) -> Option<T> {
         let mut node_loc = self.loc_from_array(loc);
         self.root.take(&mut node_loc)
@@ -146,17 +100,17 @@ where
 
     /// Insert `None` into the `Octree<T>` at a given node
     /// 
-    /// '# Examples
+    /// # Examples
     /// 
     /// ```
-    /// use octo::octree::Octree;
+    /// # use octo::octree::Octree;
     /// 
-    /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     octree.insert([0, 0, 0], 255).unwrap();
-    ///     octree.insert_none([0, 0, 0]);
-    ///     let val = octree.at([0, 0, 0]);
-    ///     assert_eq!(val, None);
-    /// };
+    /// # let mut octree = Octree::<u8>::new(16).unwrap();
+    /// octree.insert([0, 0, 0], 255).unwrap();
+    /// octree.insert_none([0, 0, 0]);
+    /// 
+    /// assert_eq!(octree.at([0, 0, 0]), None);
+    /// ```
     /// 
     pub fn insert_none(&mut self, loc: [u16; 3]) {
         let mut node_loc = self.loc_from_array(loc);
@@ -184,18 +138,15 @@ where
     /// # Examples
     ///
     /// ```
-    /// use octo::octree::Octree;
+    /// # use octo::octree::Octree;
     ///
-    /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     let mut loc1 = [0, 0, 0];
-    ///     let mut loc2 = [12, 10, 6];
-    ///     octree.insert([0, 0, 0], 255).unwrap();
-    ///     octree.insert([12, 10, 6], 128).unwrap();
+    /// # let mut octree = Octree::<u8>::new(16).unwrap();
+    /// octree.insert([0, 0, 0], 255).unwrap();
+    /// octree.insert([12, 10, 6], 128).unwrap();
     ///
-    ///     // This will print "255, 128"
-    ///     for val in octree.iter() {
-    ///         print!("{:?}", val);
-    ///     }
+    /// // This will print "255, 128"
+    /// for val in octree.iter() {
+    ///     print!("{:?}", val);
     /// }
     /// ```
     ///
@@ -232,14 +183,13 @@ where
     /// # Examples
     ///
     /// ```
-    /// use octo::octree::Octree;
+    /// # use octo::octree::Octree;
     ///
-    /// if let Some(mut octree) = Octree::<u8>::new(16) {
-    ///     octree.insert([0, 0, 0], 255).unwrap();
-    ///
-    ///     let mut iter = octree.into_iter();
-    ///     assert_eq!(iter.nth(0), Some(255));
-    /// }
+    /// # let mut octree = Octree::<u8>::new(16).unwrap();
+    /// octree.insert([0, 0, 0], 255).unwrap();
+    /// let mut iter = octree.into_iter();
+    /// 
+    /// assert_eq!(iter.nth(0), Some(255));
     /// ```
     ///
     fn into_iter(self) -> OctreeIterator<T> {

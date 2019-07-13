@@ -1,7 +1,8 @@
 pub mod octree;
-
 mod node;
 mod types;
+
+pub use octree::Octree;
 
 #[cfg(test)]
 mod tests {
