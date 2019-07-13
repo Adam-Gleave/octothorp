@@ -5,6 +5,8 @@ pub mod octree;
 pub use error::OctreeError;
 pub use octree::Octree;
 
+extern crate serde;
+
 #[cfg(test)]
 mod tests {
     extern crate core;

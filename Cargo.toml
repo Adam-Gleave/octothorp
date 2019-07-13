@@ -1,7 +1,10 @@
 [package]
 name = "octo"
 version = "0.1.0"
-authors = ["Adam-Gleave <adamg108@hotmail.co.uk>"]
+authors = ["Adam-Gleave <adamgleave97@gmail.com>"]
+
+[dependencies]
+serde = { version = "1.0.94", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.2.11"

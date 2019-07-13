@@ -1,15 +1,14 @@
-extern crate core;
-
-use self::core::u8;
 use error::OctreeError;
 use node::{NodeLoc, OctreeNode};
-use std::fmt;
+use serde::{Serialize, Deserialize};
+use std::{fmt, u8};
 
 /// Octree structure
+#[derive(Serialize, Deserialize)]
 pub struct Octree<T> {
     dimension: u16,
     max_depth: u8,
-    root: Box<OctreeNode<T>>,
+    root: OctreeNode<T>,
 }
 
 impl<T> Octree<T>
@@ -33,7 +32,7 @@ where
             Ok(Octree {
                 dimension,
                 max_depth: depth as u8,
-                root: Box::new(OctreeNode::construct_root(dimension)),
+                root: OctreeNode::construct_root(dimension),
             })
         } else {
             Err(OctreeError::DimensionError)
@@ -55,7 +54,7 @@ where
     pub fn insert(&mut self, loc: [u16; 3], data: T) -> Result<(), OctreeError> {
         let mut node_loc = self.loc_from_array(loc);
         if self.contains_loc(&node_loc) {
-            (*self.root).insert(&mut node_loc, data);
+            self.root.insert(&mut node_loc, data);
             Ok(())
         } else {
             Err(OctreeError::OutOfBoundsError)
@@ -207,7 +206,7 @@ where
             node_stack: vec![],
             value_stack: vec![],
         };
-        iter.node_stack.push(*(octree.root.clone()));
+        iter.node_stack.push(octree.root.clone());
         iter.dfs();
         iter
     }
@@ -218,7 +217,7 @@ where
             node_stack: vec![],
             value_stack: vec![],
         };
-        iter.node_stack.push(*(octree.root.clone()));
+        iter.node_stack.push(octree.root.clone());
         iter.dfs();
         iter
     }

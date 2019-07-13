@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+
 /// NodeLoc structure, representing location within octree
 #[derive(Debug)]
 pub struct NodeLoc {
@@ -5,39 +7,32 @@ pub struct NodeLoc {
 }
 
 impl NodeLoc {
-    /// Constructs a new `NodeLoc`.
     pub fn new(coords: (u16, u16, u16)) -> NodeLoc {
         NodeLoc {
             location: [coords.0, coords.1, coords.2],
         }
     }
 
-    /// Returns the x value of the `NodeLoc`
     pub fn x(&self) -> u16 {
         self.location[0]
     }
 
-    /// Returns the y value of the `NodeLoc`
     pub fn y(&self) -> u16 {
         self.location[1]
     }
 
-    /// Returns the z value of the `NodeLoc`
     pub fn z(&self) -> u16 {
         self.location[2]
     }
 
-    /// Set the `NodeLoc` x value
     pub fn sub_x(&mut self, delta: u16) {
         self.location[0 as usize] -= delta;
     }
 
-    /// Set the `NodeLoc` y value
     pub fn sub_y(&mut self, delta: u16) {
         self.location[1 as usize] -= delta;
     }
 
-    /// Set the `NodeLoc` z value
     pub fn sub_z(&mut self, delta: u16) {
         self.location[2 as usize] -= delta;
     }
@@ -58,7 +53,7 @@ enum ChildLoc {
 }
 
 /// OctreeNode structure (inaccessible outside module)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OctreeNode<T> {
     dimension: u16,
     leaf: bool,
@@ -134,16 +129,7 @@ where
         }
 
         if self.simplified && self.data != Some(data) {
-            for i in 0..self.children.len() {
-                if i as usize != child_loc as usize {
-                    self.children[i as usize] =
-                        Some(OctreeNode::<T>::new(self.dimension, self.data.unwrap()));
-                }
-            }
-            self.children[child_loc as usize] = Some(node.clone());
-            self.leaf = false;
-            self.simplified = false;
-            self.data = None;
+            self.try_desimplify(&node, child_loc);
         } else {
             self.children[child_loc as usize] = Some(node.clone());
         }
@@ -151,7 +137,7 @@ where
         self.try_simplify(data);
     }
 
-    /// Simplify the current node if all children have the same value
+    // Simplify the current node if all children have the same value
     fn try_simplify(&mut self, data: T) {
         for child in &self.children {
             if let Some(child_node) = child {
@@ -172,7 +158,22 @@ where
         self.simplified = true;
     }
 
-    /// Get data of an `OctreeNode<T>` at a given `NodeLoc`
+    // Attempt to insert node at base level to simplified node
+    fn try_desimplify(&mut self, node: &OctreeNode<T>, child_loc: ChildLoc) {
+        for i in 0..self.children.len() {
+            if i as usize != child_loc as usize {
+                self.children[i as usize] =
+                    Some(OctreeNode::<T>::new(self.dimension, self.data.unwrap()));
+            }
+        }
+
+        self.children[child_loc as usize] = Some(node.clone());
+        self.leaf = false;
+        self.simplified = false;
+        self.data = None;
+    }
+
+    // Get data of an `OctreeNode<T>` at a given `NodeLoc`
     pub fn at(&self, loc: &mut NodeLoc) -> Option<T> {
         let child_loc = self.get_child_loc(loc);
         let child = &self.children[child_loc as usize];
@@ -186,7 +187,7 @@ where
         }
     }
 
-    /// Get data of an `OctreeNode<T>` at a given `NodeLoc`, and replace it with `None`
+    // Get data of an `OctreeNode<T>` at a given `NodeLoc`, and replace it with `None`
     pub fn take(&mut self, loc: &mut NodeLoc) -> Option<T> {
         let child_loc = self.get_child_loc(loc);
         let child = &mut self.children[child_loc as usize];
@@ -200,13 +201,13 @@ where
         }
     }
 
-    /// Insert `None` into the data field of an `OctreeNode<T>`
+    // Insert `None` into the data field of an `OctreeNode<T>`
     pub fn insert_none(&mut self, loc: &mut NodeLoc) {
         self.take(loc);
         self.try_simplify_none();
     }
 
-    /// Remove leaf nodes from branch if all leaves contain None
+    // Remove leaf nodes from branch if all leaves contain None
     fn try_simplify_none(&mut self) {
         for child in &self.children {
             if let Some(child_node) = child {
@@ -222,7 +223,7 @@ where
         self.children = no_children();
     }
 
-    /// Get a shared reference to a given `OctreeNode<T>`
+    // Get a shared reference to a given `OctreeNode<T>`
     pub fn node_as_ref(&self, loc: &mut NodeLoc) -> Option<&OctreeNode<T>> {
         let child_loc = self.get_child_loc(loc);
         let child = &self.children[child_loc as usize];
@@ -244,7 +245,7 @@ where
         self.dimension
     }
 
-    /// Get correct insertion location of child node on insertion
+    // Get correct insertion location of child node on insertion
     fn get_child_loc(&self, loc: &mut NodeLoc) -> ChildLoc {
         let comparator = self.dimension / 2;
 
@@ -286,7 +287,7 @@ where
         }
     }
 
-    /// Set `OctreeNode<T>` as a leaf node
+    // Set `OctreeNode<T>` as a leaf node
     fn make_leaf(&mut self, state: bool) {
         self.leaf = state;
 
@@ -296,7 +297,7 @@ where
     }
 }
 
-/// Helper function that returns an empty `OctreeNode<T>` child vector
+// Helper function that returns an empty `OctreeNode<T>` child vector
 fn no_children<T>() -> Vec<Option<OctreeNode<T>>> {
     vec![None, None, None, None, None, None, None, None]
 }
